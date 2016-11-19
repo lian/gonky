@@ -2,10 +2,12 @@ package widgets
 
 import (
 	"fmt"
+	"image"
 	"unsafe"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
-	"github.com/ungerik/go-cairo"
+
+	"github.com/llgcode/draw2d/draw2dimg"
 )
 
 func NewManger(defaultProgram uint32) *Manager {
@@ -43,11 +45,13 @@ func (m *Manager) Render() {
 func (m *Manager) RenderWidget(widget Widget) {
 	state := widget.State()
 
-	surface := cairo.NewSurface(cairo.FORMAT_ARGB32, int(state.Width), int(state.Height))
+	//surface := cairo.NewSurface(cairo.FORMAT_ARGB32, int(state.Width), int(state.Height))
+	dest := image.NewRGBA(image.Rect(0, 0, int(state.Width), int(state.Height)))
+	gc := draw2dimg.NewGraphicContext(dest)
 
-	widget.Render(surface)
+	widget.Render(gc)
 
-	buf := gl.Ptr(surface.GetData())
+	buf := gl.Ptr(dest.Pix)
 
 	if state.texture == 0 {
 		fmt.Printf("generate texture\n")
@@ -56,8 +60,6 @@ func (m *Manager) RenderWidget(widget Widget) {
 		fmt.Printf("reuse texture\n")
 		glSetTextureFromCairoData(int(state.Width), int(state.Height), buf)
 	}
-
-	surface.Destroy()
 }
 
 func glTextureFromCairoData(width int, height int, data unsafe.Pointer) uint32 {

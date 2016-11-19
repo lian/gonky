@@ -12,9 +12,8 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/lian/gonky/shader"
-
-	"github.com/lian/gonky/widgets"
-	_ "github.com/lian/gonky/widgets/example"
+	"github.com/lian/gonky/texture"
+	"github.com/lian/gonky/widgets/foo"
 )
 
 func init() {
@@ -100,15 +99,18 @@ func main() {
 	fmt.Printf("program: %d\n", program)
 	gl.UseProgram(program)
 
+	vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
+	texCoordAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
+	modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
+
 	setupPerspective(WindowWidth, WindowHeight, program)
 
-	manager := widgets.NewManger(program)
-
-	for name, creator := range widgets.Widgets {
-		manager.Add(name, creator)
+	foo := &foo.Foo{
+		Texture: &texture.Texture{X: 100, Y: 100, Width: 256, Height: 256},
 	}
 
-	manager.Render()
+	foo.Texture.Setup(vertAttrib, texCoordAttrib, modelUniform)
+	foo.Render()
 
 	// Configure global settings
 	gl.Enable(gl.DEPTH_TEST)
@@ -120,7 +122,8 @@ func main() {
 
 		// Render
 		gl.UseProgram(program)
-		manager.Draw()
+
+		foo.Texture.Draw()
 
 		// Maintenance
 		window.SwapBuffers()

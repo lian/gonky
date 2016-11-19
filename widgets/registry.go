@@ -1,12 +1,10 @@
 package widgets
 
-import (
-    "github.com/ungerik/go-cairo"
-)
+import "github.com/llgcode/draw2d/draw2dimg"
 
 type Widget interface {
 	State() *State
-	Render(surface *cairo.Surface) error
+	Render(gc *draw2dimg.GraphicContext) error
 }
 type Creator func() Widget
 
