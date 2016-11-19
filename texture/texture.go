@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/lian/gonky/shader"
 )
 
 type Texture struct {
@@ -19,9 +20,15 @@ type Texture struct {
 	vbo          uint32
 	model        mgl32.Mat4
 	modelUniform int32
+	Program      *shader.Program
 }
 
-func (t *Texture) Setup(vertexAttrLocation, textureAttrLocation uint32, modelUniformLocation int32) {
+func (t *Texture) Setup(program *shader.Program) {
+	t.Program = program
+	vertexAttrLocation := t.Program.AttributeLocation("vert")
+	textureAttrLocation := t.Program.AttributeLocation("vertTexCoord")
+	modelUniformLocation := t.Program.UniformLocation("model")
+
 	gl.GenVertexArrays(1, &t.vao)
 	gl.BindVertexArray(t.vao)
 

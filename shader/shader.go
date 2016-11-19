@@ -1,26 +1,51 @@
 package shader
 
 import (
-    "strings"
-    "fmt"
-    "errors"
+	"errors"
+	"fmt"
+	"math"
+	"runtime"
+	"strings"
+
 	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
-func DefaultShader() (uint32, error) {
-  program, err := NewProgram(DefaultVertexShader, DefaultFragmentShader)
-  return program, err
+func init() {
+	runtime.LockOSThread()
 }
 
-func NewProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error) {
+func DefaultShader() (*Program, error) {
+	program, err := NewProgram(DefaultVertexShader, DefaultFragmentShader)
+	return program, err
+}
+
+type Program struct {
+	ID uint32
+}
+
+func (p *Program) Use() {
+	gl.UseProgram(p.ID)
+}
+
+func (p *Program) AttributeLocation(name string) uint32 {
+	return uint32(gl.GetAttribLocation(p.ID, gl.Str(name+"\x00")))
+}
+
+func (p *Program) UniformLocation(name string) int32 {
+	return int32(gl.GetUniformLocation(p.ID, gl.Str(name+"\x00")))
+}
+
+func NewProgram(vertexShaderSource, fragmentShaderSource string) (*Program, error) {
+	p := &Program{}
 	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
 	if err != nil {
-		return 0, err
+		return p, err
 	}
 
 	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
 	if err != nil {
-		return 0, err
+		return p, err
 	}
 
 	program := gl.CreateProgram()
@@ -38,13 +63,15 @@ func NewProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error)
 		log := strings.Repeat("\x00", int(logLength+1))
 		gl.GetProgramInfoLog(program, logLength, nil, gl.Str(log))
 
-		return 0, errors.New(fmt.Sprintf("failed to link program: %v", log))
+		return p, errors.New(fmt.Sprintf("failed to link program: %v", log))
 	}
 
 	gl.DeleteShader(vertexShader)
 	gl.DeleteShader(fragmentShader)
 
-	return program, nil
+	p.ID = program
+
+	return p, nil
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
@@ -69,6 +96,38 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 	return shader, nil
 }
 
+func SetupPerspective(width, height int, program *Program) {
+	program.Use()
+
+	fov := float32(60.0)
+	eyeX := float32(width) / 2.0
+	eyeY := float32(height) / 2.0
+	ratio := float32(width) / float32(height)
+	halfFov := (math.Pi * fov) / 360.0
+	theTan := math.Tan(float64(halfFov))
+	dist := eyeY / float32(theTan)
+	nearDist := dist / 10.0
+	farDist := dist * 10.0
+
+	projection := mgl32.Perspective(mgl32.DegToRad(fov), ratio, nearDist, farDist)
+	projectionUniform := program.UniformLocation("projection")
+	gl.UniformMatrix4fv(projectionUniform, 1, false, &projection[0])
+
+	camera := mgl32.LookAtV(mgl32.Vec3{eyeX, eyeY, dist}, mgl32.Vec3{eyeX, eyeY, 0}, mgl32.Vec3{0, 1, 0})
+	cameraUniform := program.UniformLocation("camera")
+	gl.UniformMatrix4fv(cameraUniform, 1, false, &camera[0])
+
+	//model := mgl32.Ident4()
+	//modelUniform := program.UniformLocation("model")
+	//gl.UniformMatrix4fv(modelUniform, 1, false, &model[0])
+
+	textureUniform := program.UniformLocation("tex")
+	gl.Uniform1i(textureUniform, 0)
+
+	gl.BindFragDataLocation(program.ID, 0, gl.Str("outputColor\x00"))
+
+	gl.Viewport(0, 0, int32(width), int32(height))
+}
 
 var DefaultVertexShader string = `
 #version 330
