@@ -4,16 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"runtime"
 	"strings"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 )
-
-func init() {
-	runtime.LockOSThread()
-}
 
 func DefaultShader() (*Program, error) {
 	program, err := NewProgram(DefaultVertexShader, DefaultFragmentShader)

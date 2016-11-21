@@ -18,8 +18,12 @@ func init() {
 	runtime.LockOSThread()
 }
 
+var redrawChan chan bool = make(chan bool, 10)
+
+const redrawChanHalfLen = 5
+
 func triggerRedraw() {
-	if len(redrawChan) < (cap(redrawChan) / 2) {
+	if len(redrawChan) < redrawChanHalfLen {
 		redrawChan <- true
 	}
 }
@@ -51,8 +55,6 @@ func resizeCallback(w *glfw.Window, width int, height int) {
 
 var WindowWidth int = 800
 var WindowHeight int = 600
-
-var redrawChan chan bool = make(chan bool, 10)
 
 var program *shader.Program
 
@@ -103,7 +105,7 @@ func main() {
 	shader.SetupPerspective(WindowWidth, WindowHeight, program)
 
 	foo := &foo.Foo{
-		Texture: &texture.Texture{X: 20, Y: 20, Width: 256, Height: 256},
+		Texture: &texture.Texture{X: 20, Y: 20, Width: 1024, Height: 256},
 	}
 
 	foo.Texture.Setup(program)
@@ -114,7 +116,8 @@ func main() {
 	gl.DepthFunc(gl.LESS)
 	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
 
-	pollEventsTimer := time.NewTicker(time.Millisecond * 33)
+	//pollEventsTimer := time.NewTicker(time.Millisecond * 33)
+	pollEventsTimer := time.NewTicker(time.Millisecond * 100)
 	maxRenderDelayTimer := time.NewTicker(time.Second * 20)
 
 	for !window.ShouldClose() {
