@@ -12,6 +12,7 @@ import (
 	"github.com/lian/gonky/shader"
 	"github.com/lian/gonky/texture"
 	"github.com/lian/gonky/widgets/foo"
+	"github.com/lian/gonky/widgets/status"
 )
 
 func init() {
@@ -53,8 +54,8 @@ func resizeCallback(w *glfw.Window, width int, height int) {
 	shader.SetupPerspective(width, height, program)
 }
 
-var WindowWidth int = 800
-var WindowHeight int = 600
+var WindowWidth int = 1366
+var WindowHeight int = 768
 
 var program *shader.Program
 
@@ -111,12 +112,14 @@ func main() {
 	foo.Texture.Setup(program)
 	foo.Render()
 
+	status := status.New(0, 768-18, 1366, 18, program)
+	go status.Run()
+
 	// Configure global settings
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
 	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
 
-	//pollEventsTimer := time.NewTicker(time.Millisecond * 33)
 	pollEventsTimer := time.NewTicker(time.Millisecond * 100)
 	maxRenderDelayTimer := time.NewTicker(time.Second * 20)
 
@@ -125,10 +128,12 @@ func main() {
 		case <-pollEventsTimer.C:
 			glfw.PollEvents()
 			continue
+		case <-status.Redraw:
+			status.Render()
 		case <-maxRenderDelayTimer.C:
-			fmt.Println("tick")
+			//fmt.Println("max delay tick")
 		case <-redrawChan:
-			fmt.Println("redraw tick")
+			//fmt.Println("redraw tick")
 		}
 
 		fmt.Println("DRAW")
@@ -136,6 +141,7 @@ func main() {
 
 		program.Use()
 		foo.Texture.Draw()
+		status.Texture.Draw()
 
 		window.SwapBuffers()
 		glfw.PollEvents()

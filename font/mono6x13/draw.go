@@ -17,6 +17,8 @@ func init() {
 	charTab, _ = utf8.DecodeRuneInString("\t")
 }
 
+const Width = 6
+
 func DrawString(dr pixfont.Drawable, x, y int, s string, clr color.Color) (int, int) {
 	sx := x
 	for _, c := range s {
