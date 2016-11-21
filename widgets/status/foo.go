@@ -127,12 +127,12 @@ func (s *Status) UpdateNetwork() {
 }
 
 func (s *Status) UpdateBattery() {
-	b, err := Batteries()
-	if err == nil && len(b) > 0 {
-		if b[0].Status == "Idle" {
-			s.Battery = fmt.Sprintf("idle %.0f%%", b[0].Percent)
+	b, err := ReadBattery("BAT0")
+	if err == nil {
+		if b.Status == "Idle" {
+			s.Battery = fmt.Sprintf("idle %.0f%%", b.Percent)
 		} else {
-			s.Battery = fmt.Sprintf("%s %sh %.0fmA %.0f%%", strings.ToLower(b[0].Status), b[0].Remaining, b[0].Amps, b[0].Percent)
+			s.Battery = fmt.Sprintf("%s %sh %.0fmA %.0f%%", strings.ToLower(b.Status), b.Remaining, b.Amps, b.Percent)
 		}
 	}
 }
