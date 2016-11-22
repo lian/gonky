@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"io/ioutil"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +29,8 @@ type Status struct {
 	CPU     string
 	Network string
 	Battery string
+	Thermal string
+	Fan     string
 }
 
 func New(x, y, width, height float64, program *shader.Program) *Status {
@@ -48,7 +53,7 @@ func (s *Status) Render() {
 	text_height := 3
 	terminus.DrawString(data, terminus.Width, text_height, s.Time, color.Black)
 
-	buf := strings.Join([]string{s.Memory, s.CPU, s.Network, s.Battery}, "  |  ")
+	buf := strings.Join([]string{s.Memory, s.Fan, s.Thermal, s.CPU, s.Network, s.Battery}, "  |  ")
 	right := int(s.Texture.Width) - ((len(buf) * terminus.Width) + terminus.Width)
 	terminus.DrawString(data, right, text_height, buf, color.Black)
 
@@ -61,23 +66,27 @@ func (s *Status) Run() {
 	s.UpdateCPU()
 	s.UpdateNetwork()
 	s.UpdateBattery()
+	s.UpdateThermal()
+	s.UpdateFan()
 	s.Redraw <- true
 
-	clock := time.NewTicker(time.Second * 1)
-	memory_and_battery := time.NewTicker(time.Second * 10)
-	cpu_and_network := time.NewTicker(time.Second * 5)
+	one := time.NewTicker(time.Second * 1)
+	five := time.NewTicker(time.Second * 5)
+	ten := time.NewTicker(time.Second * 10)
 	for {
 		select {
-		case <-clock.C:
+		case <-one.C:
 			s.UpdateTime()
 			break
-		case <-memory_and_battery.C:
-			s.UpdateMemory()
-			s.UpdateBattery()
-			break
-		case <-cpu_and_network.C:
+		case <-five.C:
 			s.UpdateCPU()
 			s.UpdateNetwork()
+			break
+		case <-ten.C:
+			s.UpdateMemory()
+			s.UpdateBattery()
+			s.UpdateThermal()
+			s.UpdateFan()
 			break
 		}
 		s.Redraw <- true
@@ -133,6 +142,49 @@ func (s *Status) UpdateBattery() {
 			s.Battery = fmt.Sprintf("idle %.0f%%", b.Percent)
 		} else {
 			s.Battery = fmt.Sprintf("%s %sh %.0fmA %.0f%%", strings.ToLower(b.Status), b.Remaining, b.Amps, b.Percent)
+		}
+	}
+}
+
+func (s *Status) UpdateThermal() {
+	sensors := []string{
+		"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp1_input",
+		"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input",
+		"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp3_input",
+	}
+	var result uint64 = 0
+
+	for _, path := range sensors {
+		if buf, err := ioutil.ReadFile(path); err == nil {
+			str := strings.Replace(string(buf), "\n", "", -1)
+			value, err := strconv.ParseUint(str, 10, 64)
+			if err == nil && value > result {
+				result = value
+			}
+		}
+	}
+
+	result = result / 1000
+	s.Thermal = fmt.Sprintf("%dC", result)
+}
+
+var fanRegexp *regexp.Regexp = regexp.MustCompile("speed:\t\t(\\d+)\nlevel:\t\t(.+)")
+
+func (s *Status) UpdateFan() {
+	var rpm int
+	var level int
+	var file string = "/proc/acpi/ibm/fan"
+
+	if buf, err := ioutil.ReadFile(file); err == nil {
+		m := fanRegexp.FindStringSubmatch(string(buf))
+		if len(m) == 3 {
+			rpm, _ = strconv.Atoi(m[1])
+			if m[2] == "disengaged" {
+				level = 8
+			} else {
+				level, _ = strconv.Atoi(m[2])
+			}
+			s.Fan = fmt.Sprintf("%d RPM L%d", rpm, level)
 		}
 	}
 }
