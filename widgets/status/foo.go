@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"io/ioutil"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,22 +22,33 @@ import (
 	psutil_net "github.com/shirou/gopsutil/net"
 )
 
+type Net struct {
+	Name          string
+	Time          time.Time
+	LastBytesRecv uint64
+	LastBytesSent uint64
+	RateRecv      float64
+	RateSent      float64
+}
+
 type Status struct {
-	Texture *texture.Texture
-	Redraw  chan bool
-	Time    string
-	Memory  string
-	CPU     string
-	Network string
-	Battery string
-	Thermal string
-	Fan     string
+	Texture    *texture.Texture
+	Redraw     chan bool
+	Time       string
+	Memory     string
+	CPU        string
+	Network    string
+	NetworkMap map[string]*Net
+	Battery    string
+	Thermal    string
+	Fan        string
 }
 
 func New(x, y, width, height float64, program *shader.Program) *Status {
 	status := &Status{
-		Texture: &texture.Texture{X: x, Y: y, Width: width, Height: height},
-		Redraw:  make(chan bool),
+		Texture:    &texture.Texture{X: x, Y: y, Width: width, Height: height},
+		Redraw:     make(chan bool),
+		NetworkMap: map[string]*Net{},
 	}
 	status.Texture.Setup(program)
 	return status
@@ -110,26 +122,65 @@ func (s *Status) UpdateCPU() {
 	}
 }
 
+var NetworkNamesMap map[string]string = map[string]string{
+	"enp0s25": "lan",
+	"wlp3s0":  "wifi",
+}
+
 func (s *Status) UpdateNetwork() {
 	stats, _ := psutil_net.IOCounters(true)
 	networks := []string{}
 
+	isAvailable := map[string]bool{}
+	for id, _ := range s.NetworkMap {
+		isAvailable[id] = false
+	}
+
 	for _, v := range stats {
-		switch v.Name {
-		case "lo":
-			continue
-		case "enp0s25":
-			v.Name = "lan"
-		case "wlp3s0":
-			v.Name = "wifi"
-		}
-
-		if v.BytesRecv == 0 {
+		if v.Name == "lo" || v.BytesRecv == 0 {
 			continue
 		}
+		if alias, ok := NetworkNamesMap[v.Name]; ok {
+			v.Name = alias
+		}
 
-		buf := fmt.Sprintf("%.1f-%s-%.1f", float64(v.BytesRecv), v.Name, float64(v.BytesSent))
+		isAvailable[v.Name] = true
+
+		var net *Net
+		var ok bool
+
+		if net, ok = s.NetworkMap[v.Name]; ok {
+			now := time.Now()
+			timeDiff := now.Sub(net.Time)
+			net.Time = now
+
+			recvDiff := math.Abs(float64(net.LastBytesRecv) - float64(v.BytesRecv))
+			sentDiff := math.Abs(float64(net.LastBytesSent) - float64(v.BytesSent))
+			net.LastBytesRecv = v.BytesRecv
+			net.LastBytesSent = v.BytesSent
+
+			net.RateRecv = recvDiff / timeDiff.Seconds()
+			net.RateSent = sentDiff / timeDiff.Seconds()
+		} else {
+			net = &Net{
+				Time:          time.Now(),
+				Name:          v.Name,
+				LastBytesRecv: v.BytesRecv,
+				LastBytesSent: v.BytesSent,
+				RateRecv:      0,
+				RateSent:      0,
+			}
+			s.NetworkMap[v.Name] = net
+		}
+
+		buf := fmt.Sprintf("%.1f-%s-%.1f", net.RateRecv/1024, v.Name, net.RateSent/1024)
 		networks = append(networks, buf)
+	}
+
+	for id, state := range isAvailable {
+		if state == false {
+			delete(s.NetworkMap, id)
+		}
 	}
 
 	s.Network = strings.Join(networks, " | ")
