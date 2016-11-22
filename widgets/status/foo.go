@@ -11,11 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lian/gonky/font/terminus"
 	"github.com/lian/gonky/shader"
 	"github.com/lian/gonky/texture"
 	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/llgcode/draw2d/draw2dkit"
+
+	font "github.com/lian/gonky/font/terminus"
 
 	psutil_cpu "github.com/shirou/gopsutil/cpu"
 	psutil_mem "github.com/shirou/gopsutil/mem"
@@ -63,11 +64,11 @@ func (s *Status) Render() {
 	gc.Fill()
 
 	text_height := 3
-	terminus.DrawString(data, terminus.Width, text_height, s.Time, color.Black)
+	font.DrawString(data, font.Width, text_height, s.Time, color.Black)
 
 	buf := strings.Join([]string{s.Memory, s.Fan, s.Thermal, s.CPU, s.Network, s.Battery}, "  |  ")
-	right := int(s.Texture.Width) - ((len(buf) * terminus.Width) + terminus.Width)
-	terminus.DrawString(data, right, text_height, buf, color.Black)
+	right := int(s.Texture.Width) - ((len(buf) * font.Width) + font.Width)
+	font.DrawString(data, right, text_height, buf, color.Black)
 
 	s.Texture.Write(&data.Pix)
 }

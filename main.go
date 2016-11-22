@@ -30,7 +30,7 @@ func triggerRedraw() {
 }
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	fmt.Printf("%v %d, %v %v\n", key, scancode, action, mods)
+	//fmt.Printf("%v %d, %v %v\n", key, scancode, action, mods)
 	if key == glfw.KeyEscape && action == glfw.Press {
 		window.SetShouldClose(true)
 	}
@@ -38,17 +38,17 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 }
 
 func focusCallback(window *glfw.Window, focused bool) {
-	fmt.Println("focus:", focused)
+	//fmt.Println("focus:", focused)
 	triggerRedraw()
 }
 
 func refreshCallback(window *glfw.Window) {
-	fmt.Println("refreshCallback")
+	//fmt.Println("refreshCallback")
 	triggerRedraw()
 }
 
 func resizeCallback(w *glfw.Window, width int, height int) {
-	fmt.Println("RESIZE", width, height)
+	//fmt.Println("RESIZE", width, height)
 	WindowWidth = width
 	WindowHeight = height
 	shader.SetupPerspective(width, height, program)
@@ -100,7 +100,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("program: %v\n", program)
+	//fmt.Printf("program: %v\n", program)
 	program.Use()
 
 	shader.SetupPerspective(WindowWidth, WindowHeight, program)
@@ -136,7 +136,7 @@ func main() {
 			//fmt.Println("redraw tick")
 		}
 
-		fmt.Println("DRAW")
+		//fmt.Println("DRAW")
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		program.Use()
