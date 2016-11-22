@@ -10,8 +10,6 @@ import (
 	"github.com/go-gl/glfw/v3.2/glfw"
 
 	"github.com/lian/gonky/shader"
-	"github.com/lian/gonky/texture"
-	"github.com/lian/gonky/widgets/foo"
 	"github.com/lian/gonky/widgets/status"
 )
 
@@ -54,8 +52,8 @@ func resizeCallback(w *glfw.Window, width int, height int) {
 	shader.SetupPerspective(width, height, program)
 }
 
-var WindowWidth int = 1366
-var WindowHeight int = 768
+var WindowWidth int = 800
+var WindowHeight int = 600
 
 var program *shader.Program
 
@@ -71,6 +69,10 @@ func main() {
 	glfw.WindowHint(glfw.Resizable, glfw.True)
 	//glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 	//glfw.WindowHint(glfw.Samples, 4)
+
+	screenInfo := glfw.GetPrimaryMonitor().GetVideoMode()
+	WindowWidth := screenInfo.Width
+	WindowHeight := screenInfo.Height
 
 	window, err := glfw.CreateWindow(WindowWidth, WindowHeight, "Derp", nil, nil)
 	if err != nil {
@@ -105,14 +107,15 @@ func main() {
 
 	shader.SetupPerspective(WindowWidth, WindowHeight, program)
 
-	foo := &foo.Foo{
-		Texture: &texture.Texture{X: 20, Y: 20, Width: 1024, Height: 256},
-	}
+	/*
+		foo := &foo.Foo{
+			Texture: &texture.Texture{X: 20, Y: 20, Width: 1024, Height: 256},
+		}
+		foo.Texture.Setup(program)
+		foo.Render()
+	*/
 
-	foo.Texture.Setup(program)
-	foo.Render()
-
-	status := status.New(0, 768-18, 1366, 18, program)
+	status := status.New(WindowWidth, WindowHeight, program)
 	go status.Run()
 
 	// Configure global settings
@@ -140,7 +143,7 @@ func main() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		program.Use()
-		foo.Texture.Draw()
+		//foo.Texture.Draw()
 		status.Texture.Draw()
 
 		window.SwapBuffers()

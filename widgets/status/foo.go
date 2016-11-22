@@ -45,9 +45,12 @@ type Status struct {
 	Fan        string
 }
 
-func New(x, y, width, height float64, program *shader.Program) *Status {
+var FontPadding int = 3
+
+func New(windowWidth, windowHeight int, program *shader.Program) *Status {
+	height := float64(font.Height + (2 * FontPadding))
 	status := &Status{
-		Texture:    &texture.Texture{X: x, Y: y, Width: width, Height: height},
+		Texture:    &texture.Texture{X: 0, Y: float64(windowHeight) - height, Width: float64(windowWidth), Height: height},
 		Redraw:     make(chan bool),
 		NetworkMap: map[string]*Net{},
 	}
@@ -63,7 +66,7 @@ func (s *Status) Render() {
 	draw2dkit.Rectangle(gc, 0, 0, s.Texture.Width, s.Texture.Height)
 	gc.Fill()
 
-	text_height := 3
+	text_height := FontPadding
 	font.DrawString(data, font.Width, text_height, s.Time, color.Black)
 
 	buf := strings.Join([]string{s.Memory, s.Fan, s.Thermal, s.CPU, s.Network, s.Battery}, "  |  ")

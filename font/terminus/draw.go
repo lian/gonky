@@ -18,6 +18,7 @@ func init() {
 }
 
 const Width = 6
+const Height = 12
 
 func DrawString(dr pixfont.Drawable, x, y int, s string, clr color.Color) (int, int) {
 	sx := x
