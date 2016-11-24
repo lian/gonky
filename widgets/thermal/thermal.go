@@ -4,56 +4,36 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"io/ioutil"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/lian/gonky/shader"
 	"github.com/lian/gonky/texture"
+	"github.com/lian/gonky/widgets"
 	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/llgcode/draw2d/draw2dkit"
 
 	font "github.com/lian/gonky/font/terminus"
 )
 
-type ThermalGraph struct {
-	Texture        *texture.Texture
-	Redraw         chan bool
-	Sensors        []string
-	SensorValue    int
-	SensorValueMax int
-	SensorValueMin int
-	SensorsGraph   []int
-	GraphPadding   int
+type Graphs struct {
+	Texture *texture.Texture
+	Redraw  chan bool
 
-	FanLevel    int
-	FanValue    int
-	FanValueMax int
-	FanValueMin int
-	FanGraph    []int
+	GraphPadding int
+	Stats        *widgets.Stats
 }
 
-func New(program *shader.Program) *ThermalGraph {
-	s := &ThermalGraph{
+func New(program *shader.Program, stats *widgets.Stats) *Graphs {
+	s := &Graphs{
 		Texture:      &texture.Texture{X: 20, Y: 768 - (18 * 2), Width: 300, Height: 200},
 		Redraw:       make(chan bool),
 		GraphPadding: 8,
-
-		SensorsGraph:   []int{},
-		SensorValueMax: 0,
-		SensorValueMin: 100,
-
-		FanGraph:    []int{},
-		FanValueMax: 0,
-		FanValueMin: 10000,
+		Stats:        stats,
 	}
 	s.Texture.Setup(program)
 	return s
 }
 
-func (s *ThermalGraph) Render() {
+func (s *Graphs) Render() {
 	data := image.NewRGBA(image.Rect(0, 0, int(s.Texture.Width), int(s.Texture.Height)))
 	gc := draw2dimg.NewGraphicContext(data)
 
@@ -68,10 +48,22 @@ func (s *ThermalGraph) Render() {
 	graphHeight := 40.0
 	yOffset := 0.0
 
+	maxItems := (int(s.Texture.Width) - (font.Width * 5)) / s.GraphPadding
+	start := len(s.Stats.ThermalGraph) - maxItems
+	if start < 0 {
+		start = 0
+	}
+
+	//fmt.Println(start, len(s.Stats.ThermalGraph), len(s.Stats.ThermalGraph[start:]), maxItems)
+
+	gc.SetFillColor(color.RGBA{0x00, 0x33, 0x33, 0xff})
+	draw2dkit.Rectangle(gc, 0, yOffset, s.Texture.Width, graphHeight)
+	gc.Fill()
+
 	//gc.MoveTo(0, graphHeight+yOffset)
 	var i, value int
-	for i, value = range s.SensorsGraph {
-		scaled := graphHeight - float64(int((float64(value-s.SensorValueMin)/float64(s.SensorValueMax-s.SensorValueMin))*graphHeight))
+	for i, value = range s.Stats.ThermalGraph[start:] {
+		scaled := graphHeight - float64(int((float64(value-s.Stats.ThermalValueMin)/float64(s.Stats.ThermalValueMax-s.Stats.ThermalValueMin))*graphHeight))
 		height := scaled + float64(yOffset)
 		if i == 0 {
 			gc.MoveTo(float64(i*padding), height)
@@ -86,14 +78,24 @@ func (s *ThermalGraph) Render() {
 	gc.Stroke()
 
 	x := (int(s.Texture.Width) - (font.Width * 4))
-	y := int(yOffset + (graphHeight-font.Height)/2)
-	font.DrawString(data, x, y, fmt.Sprintf("%dC", s.SensorValue), color.RGBA{0x66, 0x66, 0x66, 0xff})
+	y := int(yOffset + ((graphHeight - font.Height) / 2))
+	font.DrawString(data, x, y, fmt.Sprintf("%dC", s.Stats.ThermalValue), color.RGBA{0x66, 0x66, 0x66, 0xff})
 
 	yOffset = 60.0
 
+	maxItems = (int(s.Texture.Width) - (font.Width * 13)) / s.GraphPadding
+	start = len(s.Stats.FanGraph) - maxItems
+	if start < 0 {
+		start = 0
+	}
+
+	gc.SetFillColor(color.RGBA{0x00, 0x33, 0x33, 0xff})
+	draw2dkit.Rectangle(gc, 0, yOffset, s.Texture.Width, graphHeight)
+	gc.Fill()
+
 	//gc.MoveTo(0, graphHeight+yOffset)
-	for i, value = range s.FanGraph {
-		scaled := graphHeight - float64(int((float64(value-s.FanValueMin)/float64(s.FanValueMax-s.FanValueMin))*graphHeight))
+	for i, value = range s.Stats.FanGraph[start:] {
+		scaled := graphHeight - float64(int((float64(value-s.Stats.FanValueMin)/float64(s.Stats.FanValueMax-s.Stats.FanValueMin))*graphHeight))
 		height := scaled + float64(yOffset)
 		if i == 0 {
 			gc.MoveTo(float64(i*padding), height)
@@ -108,100 +110,8 @@ func (s *ThermalGraph) Render() {
 	gc.Stroke()
 
 	x = (int(s.Texture.Width) - (font.Width * 12))
-	y = int(yOffset + (graphHeight-font.Height)/2)
-	font.DrawString(data, x, y, fmt.Sprintf("%d RPM L%d", s.FanValue, s.FanLevel), color.RGBA{0x66, 0x66, 0x66, 0xff})
+	y = int(yOffset + ((graphHeight - font.Height) / 2))
+	font.DrawString(data, x, y, fmt.Sprintf("%d RPM L%d", s.Stats.FanValue, s.Stats.FanLevel), color.RGBA{0x66, 0x66, 0x66, 0xff})
 
 	s.Texture.Write(&data.Pix)
-}
-
-func (s *ThermalGraph) Run() {
-	s.UpdateThermal()
-	s.UpdateFan()
-	s.Redraw <- true
-
-	ten := time.NewTicker(time.Second * 2)
-	for {
-		select {
-		case <-ten.C:
-			s.UpdateThermal()
-			s.UpdateFan()
-			break
-		}
-		s.Redraw <- true
-	}
-}
-
-func (s *ThermalGraph) UpdateThermal() {
-	var max uint64 = 0
-
-	sensors := []string{
-		"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp1_input",
-		"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input",
-		"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp3_input",
-	}
-
-	for _, path := range sensors {
-		if buf, err := ioutil.ReadFile(path); err == nil {
-			str := strings.Replace(string(buf), "\n", "", -1)
-			value, err := strconv.ParseUint(str, 10, 64)
-			if err == nil && value > max {
-				max = value
-			}
-		}
-	}
-
-	s.SensorValue = int(max / 1000)
-
-	if s.SensorValue > s.SensorValueMax {
-		s.SensorValueMax = s.SensorValue + 6
-	}
-
-	if s.SensorValue < s.SensorValueMin {
-		s.SensorValueMin = s.SensorValue - 6
-	}
-
-	maxItems := (int(s.Texture.Width) - (font.Width * 5)) / s.GraphPadding
-	if len(s.SensorsGraph) >= maxItems {
-		s.SensorsGraph = append(s.SensorsGraph[1:], s.SensorValue)
-	} else {
-		s.SensorsGraph = append(s.SensorsGraph, s.SensorValue)
-	}
-}
-
-var fanRegexp *regexp.Regexp = regexp.MustCompile("speed:\t\t(\\d+)\nlevel:\t\t(.+)")
-
-func (s *ThermalGraph) UpdateFan() {
-	var rpm int
-	var level int
-	var file string = "/proc/acpi/ibm/fan"
-
-	if buf, err := ioutil.ReadFile(file); err == nil {
-		m := fanRegexp.FindStringSubmatch(string(buf))
-		if len(m) == 3 {
-			rpm, _ = strconv.Atoi(m[1])
-			if m[2] == "disengaged" {
-				level = 8
-			} else {
-				level, _ = strconv.Atoi(m[2])
-			}
-		}
-	}
-
-	s.FanLevel = level
-	s.FanValue = rpm
-
-	if s.FanValue > s.FanValueMax {
-		s.FanValueMax = s.FanValue + 100
-	}
-
-	if s.FanValue < s.FanValueMin {
-		s.FanValueMin = s.FanValue - 100
-	}
-
-	maxItems := (int(s.Texture.Width) - (font.Width * 13)) / s.GraphPadding
-	if len(s.FanGraph) >= maxItems {
-		s.FanGraph = append(s.FanGraph[1:], s.FanValue)
-	} else {
-		s.FanGraph = append(s.FanGraph, s.FanValue)
-	}
 }

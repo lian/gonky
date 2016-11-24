@@ -10,6 +10,7 @@ import (
 	"github.com/go-gl/glfw/v3.2/glfw"
 
 	"github.com/lian/gonky/shader"
+	"github.com/lian/gonky/widgets"
 	"github.com/lian/gonky/widgets/status"
 	"github.com/lian/gonky/widgets/thermal"
 )
@@ -114,11 +115,13 @@ func main() {
 		foo.Render()
 	*/
 
-	status := status.New(WindowWidth, WindowHeight, program)
+	stats := widgets.NewStats()
+	go stats.Run()
+
+	status := status.New(WindowWidth, WindowHeight, program, stats)
 	go status.Run()
 
-	thermal := thermal.New(program)
-	go thermal.Run()
+	graphs := thermal.New(program, stats)
 
 	// Configure global settings
 	gl.Enable(gl.DEPTH_TEST)
@@ -136,10 +139,11 @@ func main() {
 		case <-pollEventsTimer.C:
 			glfw.PollEvents()
 			continue
+		case <-stats.Updated:
+			status.Render()
+			graphs.Render()
 		case <-status.Redraw:
 			status.Render()
-		case <-thermal.Redraw:
-			thermal.Render()
 		case <-maxRenderDelayTimer.C:
 			//fmt.Println("max delay tick")
 		case <-redrawChan:
@@ -152,7 +156,7 @@ func main() {
 		program.Use()
 		//foo.Texture.Draw()
 		status.Texture.Draw()
-		thermal.Texture.Draw()
+		graphs.Texture.Draw()
 
 		window.SwapBuffers()
 		glfw.PollEvents()
