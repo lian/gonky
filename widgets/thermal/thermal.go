@@ -68,18 +68,22 @@ func (s *ThermalGraph) Render() {
 	graphHeight := 40.0
 	yOffset := 0.0
 
-	gc.MoveTo(0, graphHeight+yOffset)
+	//gc.MoveTo(0, graphHeight+yOffset)
 	var i, value int
 	for i, value = range s.SensorsGraph {
 		scaled := graphHeight - float64(int((float64(value-s.SensorValueMin)/float64(s.SensorValueMax-s.SensorValueMin))*graphHeight))
 		height := scaled + float64(yOffset)
-		gc.LineTo(float64(i*padding), height)
+		if i == 0 {
+			gc.MoveTo(float64(i*padding), height)
+		} else {
+			gc.LineTo(float64(i*padding), height)
+		}
 		gc.LineTo(float64(i*padding)+float64(padding), height)
 	}
-	gc.LineTo(float64(i*padding)+float64(padding), graphHeight+yOffset)
-	gc.Close()
-	gc.Fill()
-	//gc.Stroke()
+	//gc.LineTo(float64(i*padding)+float64(padding), graphHeight+yOffset)
+	//gc.Close()
+	//gc.Fill()
+	gc.Stroke()
 
 	x := (int(s.Texture.Width) - (font.Width * 4))
 	y := int(yOffset + (graphHeight-font.Height)/2)
@@ -87,17 +91,21 @@ func (s *ThermalGraph) Render() {
 
 	yOffset = 60.0
 
-	gc.MoveTo(0, graphHeight+yOffset)
+	//gc.MoveTo(0, graphHeight+yOffset)
 	for i, value = range s.FanGraph {
 		scaled := graphHeight - float64(int((float64(value-s.FanValueMin)/float64(s.FanValueMax-s.FanValueMin))*graphHeight))
 		height := scaled + float64(yOffset)
-		gc.LineTo(float64(i*padding), height)
+		if i == 0 {
+			gc.MoveTo(float64(i*padding), height)
+		} else {
+			gc.LineTo(float64(i*padding), height)
+		}
 		gc.LineTo(float64(i*padding)+float64(padding), height)
 	}
-	gc.LineTo(float64(i*padding)+float64(padding), graphHeight+yOffset)
-	gc.Close()
-	gc.Fill()
-	//gc.Stroke()
+	//gc.LineTo(float64(i*padding)+float64(padding), graphHeight+yOffset)
+	//gc.Close()
+	//gc.Fill()
+	gc.Stroke()
 
 	x = (int(s.Texture.Width) - (font.Width * 12))
 	y = int(yOffset + (graphHeight-font.Height)/2)
