@@ -50,7 +50,6 @@ var FontPadding int = 3
 func New(windowWidth, windowHeight int, program *shader.Program) *Status {
 	height := float64(font.Height + (2 * FontPadding))
 	status := &Status{
-		//Texture:    &texture.Texture{X: 0, Y: float64(windowHeight) - height, Width: float64(windowWidth), Height: height},
 		Texture:    &texture.Texture{X: 0, Y: float64(windowHeight), Width: float64(windowWidth), Height: height},
 		Redraw:     make(chan bool),
 		NetworkMap: map[string]*Net{},

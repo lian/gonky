@@ -18,12 +18,14 @@ import (
 )
 
 type ThermalGraph struct {
-	Texture      *texture.Texture
-	Redraw       chan bool
-	Sensors      []string
-	SensorValue  uint64
-	SensorsGraph []uint64
-	GraphPadding int
+	Texture        *texture.Texture
+	Redraw         chan bool
+	Sensors        []string
+	SensorValue    int
+	SensorValueMax int
+	SensorValueMin int
+	SensorsGraph   []int
+	GraphPadding   int
 }
 
 func New(program *shader.Program) *ThermalGraph {
@@ -35,8 +37,10 @@ func New(program *shader.Program) *ThermalGraph {
 			"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input",
 			"/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp3_input",
 		},
-		SensorsGraph: []uint64{},
-		GraphPadding: 10,
+		SensorsGraph:   []int{},
+		GraphPadding:   8,
+		SensorValueMax: 0,
+		SensorValueMin: 100,
 	}
 	s.Texture.Setup(program)
 	return s
@@ -47,44 +51,16 @@ func (s *ThermalGraph) Render() {
 	gc := draw2dimg.NewGraphicContext(data)
 
 	gc.SetFillColor(color.RGBA{0x33, 0x33, 0x33, 0xff})
-	//gc.SetFillColor(color.RGBA{0x66, 0x66, 0x66, 0xff})
 	draw2dkit.Rectangle(gc, 0, 0, s.Texture.Width, s.Texture.Height)
 	gc.Fill()
 
 	padding := s.GraphPadding
-	//gc.SetFillColor(color.RGBA{0x00, 0x00, 0x00, 0xff})
 	gc.SetFillColor(color.RGBA{0x66, 0x66, 0x66, 0xff})
-	//gc.SetFillColor(color.RGBA{0x33, 0x33, 0x33, 0xff})
-
-	/*
-		for i, v := range s.SensorsGraph {
-			//fmt.Println(i, v)
-			height := (float64(v[0]) / 100.0) * 40
-			draw2dkit.Rectangle(gc, float64(i*padding), float64(int(height)), float64(i*padding)+float64(padding), 40)
-			gc.Fill()
-		}
-	*/
-
-	/*
-		//gc.SetLineWidth(1.0)
-		gc.Current.LineWidth = 10
-		for i, v := range s.SensorsGraph {
-			height := float64(int((float64(v[0]) / 100.0) * 40))
-			if i == 0 {
-				gc.MoveTo(float64(i*padding), height)
-			} else {
-				gc.LineTo(float64(i*padding), height)
-			}
-			gc.LineTo(float64(i*padding)+float64(padding), height)
-		}
-		gc.Stroke()
-	*/
 
 	gc.MoveTo(0, 40)
-	var i int
-	var value uint64
+	var i, value int
 	for i, value = range s.SensorsGraph {
-		height := float64(int((float64(value) / 100.0) * 40))
+		height := 40 - float64(int((float64(value-s.SensorValueMin)/float64(s.SensorValueMax-s.SensorValueMin))*40))
 		gc.LineTo(float64(i*padding), height)
 		gc.LineTo(float64(i*padding)+float64(padding), height)
 	}
@@ -94,8 +70,6 @@ func (s *ThermalGraph) Render() {
 
 	x := (int(s.Texture.Width) - (font.Width * 4))
 	y := (40 - font.Height) / 2
-	//font.DrawString(data, x, y, fmt.Sprintf("%dC", s.SensorValue), color.Black)
-	//font.DrawString(data, x, y, fmt.Sprintf("%dC", s.SensorValue), color.White)
 	font.DrawString(data, x, y, fmt.Sprintf("%dC", s.SensorValue), color.RGBA{0x66, 0x66, 0x66, 0xff})
 
 	s.Texture.Write(&data.Pix)
@@ -105,7 +79,7 @@ func (s *ThermalGraph) Run() {
 	s.UpdateThermal()
 	s.Redraw <- true
 
-	ten := time.NewTicker(time.Second * 2)
+	ten := time.NewTicker(time.Second * 10)
 	for {
 		select {
 		case <-ten.C:
@@ -129,7 +103,15 @@ func (s *ThermalGraph) UpdateThermal() {
 		}
 	}
 
-	s.SensorValue = max / 1000
+	s.SensorValue = int(max / 1000)
+
+	if s.SensorValue > s.SensorValueMax {
+		s.SensorValueMax = s.SensorValue + 6
+	}
+
+	if s.SensorValue < s.SensorValueMin {
+		s.SensorValueMin = s.SensorValue - 6
+	}
 
 	maxItems := (int(s.Texture.Width) - (font.Width * 5)) / s.GraphPadding
 	if len(s.SensorsGraph) >= maxItems {
