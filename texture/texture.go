@@ -50,7 +50,7 @@ func (t *Texture) Setup(program *shader.Program) {
 	gl.EnableVertexAttribArray(textureAttrLocation)
 	gl.VertexAttribPointer(textureAttrLocation, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
 
-	t.model = mgl32.Translate3D(float32(t.X), float32(t.Y), 0.0)
+	t.model = mgl32.Translate3D(float32(t.X), float32(t.Y-t.Height), 0.0)
 	t.modelUniform = modelUniformLocation
 }
 
@@ -75,6 +75,7 @@ func (t *Texture) Write(data *[]uint8) {
 	if t.texture == 0 {
 		t.texture = newTextureData(int32(t.Width), int32(t.Height), buf)
 	} else {
+		gl.BindTexture(gl.TEXTURE_2D, t.texture)
 		updateTextureData(int32(t.Width), int32(t.Height), buf)
 	}
 }

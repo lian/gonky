@@ -11,6 +11,7 @@ import (
 
 	"github.com/lian/gonky/shader"
 	"github.com/lian/gonky/widgets/status"
+	"github.com/lian/gonky/widgets/thermal"
 )
 
 func init() {
@@ -74,16 +75,14 @@ func main() {
 	WindowWidth := screenInfo.Width
 	WindowHeight := screenInfo.Height
 
-	window, err := glfw.CreateWindow(WindowWidth, WindowHeight, "Derp", nil, nil)
+	window, err := glfw.CreateWindow(WindowWidth, WindowHeight, "derp", nil, nil)
 	if err != nil {
 		panic(err)
 	}
 	window.MakeContextCurrent()
 	//window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
 	//window.SetInputMode(glfw.CursorMode, glfw.CursorHidden)
-
 	window.SetSizeCallback(resizeCallback)
-
 	window.SetRefreshCallback(refreshCallback)
 	window.SetFocusCallback(focusCallback)
 	window.SetKeyCallback(keyCallback)
@@ -118,10 +117,16 @@ func main() {
 	status := status.New(WindowWidth, WindowHeight, program)
 	go status.Run()
 
+	thermal := thermal.New(program)
+	go thermal.Run()
+
 	// Configure global settings
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
 	gl.ClearColor(0.2, 0.2, 0.2, 1.0)
+
+	//gl.Enable(gl.BLEND)
+	//gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 	pollEventsTimer := time.NewTicker(time.Millisecond * 100)
 	maxRenderDelayTimer := time.NewTicker(time.Second * 20)
@@ -133,6 +138,8 @@ func main() {
 			continue
 		case <-status.Redraw:
 			status.Render()
+		case <-thermal.Redraw:
+			thermal.Render()
 		case <-maxRenderDelayTimer.C:
 			//fmt.Println("max delay tick")
 		case <-redrawChan:
@@ -145,6 +152,7 @@ func main() {
 		program.Use()
 		//foo.Texture.Draw()
 		status.Texture.Draw()
+		thermal.Texture.Draw()
 
 		window.SwapBuffers()
 		glfw.PollEvents()
