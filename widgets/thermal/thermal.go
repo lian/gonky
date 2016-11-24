@@ -65,38 +65,42 @@ func (s *ThermalGraph) Render() {
 	gc.SetFillColor(color.RGBA{0x66, 0x66, 0x66, 0xff})
 	gc.SetStrokeColor(color.RGBA{0x66, 0x66, 0x66, 0xff})
 
-	gc.MoveTo(0, 40)
+	graphHeight := 40.0
+	yOffset := 0.0
+
+	gc.MoveTo(0, graphHeight+yOffset)
 	var i, value int
 	for i, value = range s.SensorsGraph {
-		height := 40 - float64(int((float64(value-s.SensorValueMin)/float64(s.SensorValueMax-s.SensorValueMin))*40))
+		scaled := graphHeight - float64(int((float64(value-s.SensorValueMin)/float64(s.SensorValueMax-s.SensorValueMin))*graphHeight))
+		height := scaled + float64(yOffset)
 		gc.LineTo(float64(i*padding), height)
 		gc.LineTo(float64(i*padding)+float64(padding), height)
 	}
-	gc.LineTo(float64(i*padding)+float64(padding), 40)
+	gc.LineTo(float64(i*padding)+float64(padding), graphHeight+yOffset)
 	gc.Close()
 	gc.Fill()
 	//gc.Stroke()
 
 	x := (int(s.Texture.Width) - (font.Width * 4))
-	y := (40 - font.Height) / 2
+	y := int(yOffset + (graphHeight-font.Height)/2)
 	font.DrawString(data, x, y, fmt.Sprintf("%dC", s.SensorValue), color.RGBA{0x66, 0x66, 0x66, 0xff})
 
-	yOffset := 60
+	yOffset = 60.0
 
-	gc.MoveTo(0, 40+float64(yOffset))
+	gc.MoveTo(0, graphHeight+yOffset)
 	for i, value = range s.FanGraph {
-		height := 40 - float64(int((float64(value-s.FanValueMin)/float64(s.FanValueMax-s.FanValueMin))*40))
-		height += float64(yOffset)
+		scaled := graphHeight - float64(int((float64(value-s.FanValueMin)/float64(s.FanValueMax-s.FanValueMin))*graphHeight))
+		height := scaled + float64(yOffset)
 		gc.LineTo(float64(i*padding), height)
 		gc.LineTo(float64(i*padding)+float64(padding), height)
 	}
-	gc.LineTo(float64(i*padding)+float64(padding), 40+float64(yOffset))
+	gc.LineTo(float64(i*padding)+float64(padding), graphHeight+yOffset)
 	gc.Close()
 	gc.Fill()
 	//gc.Stroke()
 
 	x = (int(s.Texture.Width) - (font.Width * 12))
-	y = 60 + ((40 - font.Height) / 2)
+	y = int(yOffset + (graphHeight-font.Height)/2)
 	font.DrawString(data, x, y, fmt.Sprintf("%d RPM L%d", s.FanValue, s.FanLevel), color.RGBA{0x66, 0x66, 0x66, 0xff})
 
 	s.Texture.Write(&data.Pix)
