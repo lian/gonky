@@ -41,24 +41,26 @@ func (s *Graphs) Render() {
 	draw2dkit.Rectangle(gc, 0, 0, s.Texture.Width, s.Texture.Height)
 	gc.Fill()
 
-	padding := s.GraphPadding
-	gc.SetFillColor(color.RGBA{0x66, 0x66, 0x66, 0xff})
+	//gc.SetFillColor(color.RGBA{0x66, 0x66, 0x66, 0xff})
 	gc.SetStrokeColor(color.RGBA{0x66, 0x66, 0x66, 0xff})
+	gc.SetLineWidth(1.0)
 
+	s.DrawThermal(gc, data)
+	s.DrawFan(gc, data)
+
+	s.Texture.Write(&data.Pix)
+}
+
+func (s *Graphs) DrawThermal(gc *draw2dimg.GraphicContext, data *image.RGBA) {
+	padding := s.GraphPadding
 	graphHeight := 40.0
 	yOffset := 0.0
 
-	maxItems := (int(s.Texture.Width) - (font.Width * 5)) / s.GraphPadding
+	maxItems := (int(s.Texture.Width) - (font.Width * 5)) / padding
 	start := len(s.Stats.ThermalGraph) - maxItems
 	if start < 0 {
 		start = 0
 	}
-
-	//fmt.Println(start, len(s.Stats.ThermalGraph), len(s.Stats.ThermalGraph[start:]), maxItems)
-
-	gc.SetFillColor(color.RGBA{0x00, 0x33, 0x33, 0xff})
-	draw2dkit.Rectangle(gc, 0, yOffset, s.Texture.Width, graphHeight)
-	gc.Fill()
 
 	//gc.MoveTo(0, graphHeight+yOffset)
 	var i, value int
@@ -80,20 +82,21 @@ func (s *Graphs) Render() {
 	x := (int(s.Texture.Width) - (font.Width * 4))
 	y := int(yOffset + ((graphHeight - font.Height) / 2))
 	font.DrawString(data, x, y, fmt.Sprintf("%dC", s.Stats.ThermalValue), color.RGBA{0x66, 0x66, 0x66, 0xff})
+}
 
-	yOffset = 60.0
+func (s *Graphs) DrawFan(gc *draw2dimg.GraphicContext, data *image.RGBA) {
+	padding := s.GraphPadding
+	graphHeight := 40.0
+	yOffset := 60.0
 
-	maxItems = (int(s.Texture.Width) - (font.Width * 13)) / s.GraphPadding
-	start = len(s.Stats.FanGraph) - maxItems
+	maxItems := (int(s.Texture.Width) - (font.Width * 13)) / padding
+	start := len(s.Stats.FanGraph) - maxItems
 	if start < 0 {
 		start = 0
 	}
 
-	gc.SetFillColor(color.RGBA{0x00, 0x33, 0x33, 0xff})
-	draw2dkit.Rectangle(gc, 0, yOffset, s.Texture.Width, graphHeight)
-	gc.Fill()
-
 	//gc.MoveTo(0, graphHeight+yOffset)
+	var i, value int
 	for i, value = range s.Stats.FanGraph[start:] {
 		scaled := graphHeight - float64(int((float64(value-s.Stats.FanValueMin)/float64(s.Stats.FanValueMax-s.Stats.FanValueMin))*graphHeight))
 		height := scaled + float64(yOffset)
@@ -109,9 +112,7 @@ func (s *Graphs) Render() {
 	//gc.Fill()
 	gc.Stroke()
 
-	x = (int(s.Texture.Width) - (font.Width * 12))
-	y = int(yOffset + ((graphHeight - font.Height) / 2))
+	x := (int(s.Texture.Width) - (font.Width * 12))
+	y := int(yOffset + ((graphHeight - font.Height) / 2))
 	font.DrawString(data, x, y, fmt.Sprintf("%d RPM L%d", s.Stats.FanValue, s.Stats.FanLevel), color.RGBA{0x66, 0x66, 0x66, 0xff})
-
-	s.Texture.Write(&data.Pix)
 }

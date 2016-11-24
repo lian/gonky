@@ -18,6 +18,11 @@ func NewStats() *Stats {
 		ThermalGraphMaxCount: 60,
 		MemoryGraphMaxCount:  60,
 		CpuGraphMaxCount:     60,
+
+		ThermalValueMin: 0xffff,
+		FanValueMin:     0xffff,
+		MemoryValueMin:  0xffff,
+		CpuValueMin:     0xffff,
 	}
 	return s
 }
@@ -103,11 +108,11 @@ func (s *Stats) UpdateFan() {
 	s.FanValue = rpm
 
 	if s.FanValue > s.FanValueMax {
-		s.FanValueMax = s.FanValue + 100
+		s.FanValueMax = s.FanValue
 	}
 
 	if s.FanValue < s.FanValueMin {
-		s.FanValueMin = s.FanValue - 100
+		s.FanValueMin = s.FanValue
 	}
 
 	if len(s.FanGraph) >= s.FanGraphMaxCount {
@@ -139,11 +144,11 @@ func (s *Stats) UpdateThermal() {
 	s.ThermalValue = int(max / 1000)
 
 	if s.ThermalValue > s.ThermalValueMax {
-		s.ThermalValueMax = s.ThermalValue + 6
+		s.ThermalValueMax = s.ThermalValue
 	}
 
 	if s.ThermalValue < s.ThermalValueMin {
-		s.ThermalValueMin = s.ThermalValue - 6
+		s.ThermalValueMin = s.ThermalValue
 	}
 
 	if len(s.ThermalGraph) >= s.ThermalGraphMaxCount {
@@ -158,11 +163,11 @@ func (s *Stats) UpdateMemory() {
 	s.MemoryValue = v.UsedPercent
 
 	if s.MemoryValue > s.MemoryValueMax {
-		s.MemoryValueMax = s.MemoryValue + 10
+		s.MemoryValueMax = s.MemoryValue
 	}
 
 	if s.MemoryValue < s.MemoryValueMin {
-		s.MemoryValueMin = s.MemoryValue - 10
+		s.MemoryValueMin = s.MemoryValue
 	}
 
 	if len(s.MemoryGraph) >= s.MemoryGraphMaxCount {
@@ -182,11 +187,11 @@ func (s *Stats) UpdateCPU() {
 	s.CpuValue = percent[0]
 
 	if s.CpuValue > s.CpuValueMax {
-		s.CpuValueMax = s.CpuValue + 10
+		s.CpuValueMax = s.CpuValue
 	}
 
 	if s.CpuValue < s.CpuValueMin {
-		s.CpuValueMin = s.CpuValue - 10
+		s.CpuValueMin = s.CpuValue
 	}
 
 	if len(s.CpuGraph) >= s.CpuGraphMaxCount {
