@@ -69,7 +69,7 @@ func main() {
 	glfw.WindowHint(glfw.ContextVersionMinor, 3)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.Resizable, glfw.True)
-	//glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 	//glfw.WindowHint(glfw.Samples, 4)
 
 	screenInfo := glfw.GetPrimaryMonitor().GetVideoMode()

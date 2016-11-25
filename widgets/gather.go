@@ -63,22 +63,17 @@ func (s *Stats) Run() {
 	s.UpdateFan()
 	s.Updated <- true
 
-	two := time.NewTicker(time.Second * 2)
 	five := time.NewTicker(time.Second * 5)
 	ten := time.NewTicker(time.Second * 10)
 	for {
 		select {
-		case <-two.C:
+		case <-five.C:
+			s.UpdateCPU()
 			s.UpdateThermal()
 			s.UpdateFan()
 			break
-		case <-five.C:
-			s.UpdateCPU()
-			break
 		case <-ten.C:
 			s.UpdateMemory()
-			//s.UpdateThermal()
-			//s.UpdateFan()
 			break
 		}
 		s.Updated <- true
