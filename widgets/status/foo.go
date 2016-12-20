@@ -81,15 +81,12 @@ func (s *Status) Run() {
 	s.UpdateBattery()
 	s.Redraw <- true
 
-	one := time.NewTicker(time.Second * 1)
 	five := time.NewTicker(time.Second * 5)
 	ten := time.NewTicker(time.Second * 10)
 	for {
 		select {
-		case <-one.C:
-			s.UpdateTime()
-			break
 		case <-five.C:
+			s.UpdateTime()
 			s.UpdateNetwork()
 			break
 		case <-ten.C:
@@ -101,7 +98,8 @@ func (s *Status) Run() {
 }
 
 func (s *Status) UpdateTime() {
-	s.Time = time.Now().Format("15:04:05 02.01.2006")
+	//s.Time = time.Now().Format("15:04:05 02.01.2006")
+	s.Time = time.Now().Format("15:04 02.01.2006")
 }
 
 var NetworkNamesMap map[string]string = map[string]string{

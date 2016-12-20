@@ -20,9 +20,12 @@ func NewStats() *Stats {
 		CpuGraphMaxCount:     60,
 
 		ThermalValueMin: 0xffff,
-		FanValueMin:     0xffff,
-		MemoryValueMin:  0xffff,
-		CpuValueMin:     0xffff,
+		//FanValueMin:     0xffff,
+		MemoryValueMin: 0xffff,
+		CpuValueMin:    0xffff,
+
+		FanValueMin: 0,
+		FanValueMax: 10000,
 	}
 	return s
 }
@@ -103,11 +106,11 @@ func (s *Stats) UpdateFan() {
 	s.FanValue = rpm
 
 	if s.FanValue > s.FanValueMax {
-		s.FanValueMax = s.FanValue
+		s.FanValue = s.FanValueMax
 	}
 
 	if s.FanValue < s.FanValueMin {
-		s.FanValueMin = s.FanValue
+		s.FanValue = s.FanValueMin
 	}
 
 	if len(s.FanGraph) >= s.FanGraphMaxCount {
