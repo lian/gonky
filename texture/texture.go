@@ -54,6 +54,11 @@ func (t *Texture) Setup(program *shader.Program) {
 	t.modelUniform = modelUniformLocation
 }
 
+func (t *Texture) DrawAt(x, y float32) {
+	t.model = mgl32.Translate3D(x, y-float32(t.Height), 0.0)
+	t.Draw()
+}
+
 func (t *Texture) Draw() {
 	gl.UniformMatrix4fv(t.modelUniform, 1, false, &t.model[0])
 	gl.BindVertexArray(t.vao)
